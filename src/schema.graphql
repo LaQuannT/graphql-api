@@ -4,10 +4,31 @@ type Query {
 }
 
 type Mutation {
-  post(text: String!): Story!
+  createStory(text: String!): Story!
+  register(
+    username: String!
+    email: String!
+    password: String!
+    confirmedPassword: String!
+  ): AuthPayload
+  login(username: String!, password: String!): AuthPayload
 }
 
 type Story {
   id: ID!
   text: String!
+  author: User!
+}
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  password: String!
+  stories: [Story!]!
+}
+
+type AuthPayload {
+  token: String!
+  user: User
 }
