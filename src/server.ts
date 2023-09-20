@@ -9,6 +9,7 @@ import {
   Request,
 } from 'graphql-helix';
 import { schema } from './schema';
+import { contextFactory } from './context';
 import { config } from 'dotenv';
 
 config();
@@ -42,6 +43,7 @@ server.route({
       variables,
       schema,
       request,
+      contextFactory,
     });
 
     sendResult(results, res.raw);

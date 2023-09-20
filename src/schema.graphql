@@ -1,5 +1,10 @@
 type Query {
   info: String!
+  feed: [Story!]!
+}
+
+type Mutation {
+  post(text: String!): Story!
 }
 
 type Story {
