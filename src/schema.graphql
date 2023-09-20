@@ -1,3 +1,8 @@
 type Query {
   info: String!
 }
+
+type Story {
+  id: ID!
+  text: String!
+}
