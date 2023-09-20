@@ -1,4 +1,14 @@
+import 'graphql-import-node';
 import Fastify from 'fastify';
+import {
+  getGraphQLParameters,
+  processRequest,
+  renderGraphiQL,
+  shouldRenderGraphiQL,
+  sendResult,
+  Request,
+} from 'graphql-helix';
+import { schema } from './schema';
 import { config } from 'dotenv';
 
 config();
@@ -8,8 +18,34 @@ const server = Fastify({
 
 const port = Number(process.env.PORT) || 8000;
 
-server.get('/api/v1/stories', async () => {
-  return { message: 'Hello, World!' };
+server.route({
+  method: ['GET', 'POST'],
+  url: '/api/v1/stories',
+  async handler(req, res) {
+    const request: Request = {
+      headers: req.headers,
+      method: req.method,
+      query: req.query,
+      body: req.body,
+    };
+
+    if (shouldRenderGraphiQL(request)) {
+      res.type('text/html');
+      res.send(renderGraphiQL({ endpoint: '/api/v1/stories' }));
+      return;
+    }
+
+    const { operationName, query, variables } = getGraphQLParameters(request);
+    const results = await processRequest({
+      operationName,
+      query,
+      variables,
+      schema,
+      request,
+    });
+
+    sendResult(results, res.raw);
+  },
 });
 
 server.listen({ port }).catch((error) => {
