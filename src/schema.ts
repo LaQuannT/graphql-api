@@ -1,7 +1,9 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { Story } from '@prisma/client';
-import { GraphQlContext } from './context';
+import { GraphQlContext } from './lib/context';
 import typeDefs from './schema.graphql';
+import { compare, hash } from 'bcryptjs';
+import createToken from './lib/createToken';
 
 const resolvers = {
   Query: {
@@ -11,12 +13,8 @@ const resolvers = {
       return context.prisma.story.findMany({});
     },
   },
-  Story: {
-    id: (parent: Story) => parent.id,
-    text: (parent: Story) => parent.text,
-  },
   Mutation: {
-    post: async (
+    createStory: async (
       parent: unknown,
       args: { text: string },
       context: GraphQlContext
@@ -27,6 +25,50 @@ const resolvers = {
         },
       });
       return newStory;
+    },
+    register: async (
+      parent: unknown,
+      args: {
+        username: string;
+        password: string;
+        confirmedPassword: string;
+        email: string;
+      },
+      context: GraphQlContext
+    ) => {
+      const hashedPassword = await hash(args.password, 10);
+      const user = await context.prisma.user.create({
+        data: {
+          email: args.email,
+          username: args.username,
+          password: hashedPassword,
+        },
+      });
+
+      const token = createToken(user.id);
+
+      return { token, user };
+    },
+    login: async (
+      parent: unknown,
+      args: { username: string; password: string },
+      context: GraphQlContext
+    ) => {
+      const user = await context.prisma.user.findUnique({
+        where: {
+          username: args.username,
+        },
+      });
+
+      if (!user) throw new Error('User not found');
+
+      const isPasswordValid = await compare(args.password, user.password);
+
+      if (!isPasswordValid) throw new Error('Invalid password');
+
+      const token = createToken(user.id);
+
+      return { token, user };
     },
   },
 };

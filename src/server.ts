@@ -9,7 +9,7 @@ import {
   Request,
 } from 'graphql-helix';
 import { schema } from './schema';
-import { contextFactory } from './context';
+import { contextFactory } from './lib/context';
 import { config } from 'dotenv';
 
 config();
