@@ -4,6 +4,12 @@ import { GraphQlContext } from './lib/context';
 import typeDefs from './schema.graphql';
 import { compare, hash } from 'bcryptjs';
 import createToken from './lib/createToken';
+import {
+  createStorySchema,
+  loginUserSchema,
+  registerUserSchema,
+} from './lib/objectSchemas';
+import { fromZodError } from 'zod-validation-error';
 
 const resolvers = {
   Query: {
@@ -19,6 +25,12 @@ const resolvers = {
       args: { text: string },
       context: GraphQlContext
     ) => {
+      const result = createStorySchema.safeParse(args.text);
+
+      if (!result.success) {
+        throw fromZodError(result.error);
+      }
+
       const newStory = await context.prisma.story.create({
         data: {
           text: args.text,
@@ -36,6 +48,11 @@ const resolvers = {
       },
       context: GraphQlContext
     ) => {
+      const result = registerUserSchema.safeParse({ ...args });
+      if (!result.success) {
+        throw fromZodError(result.error);
+      }
+
       const hashedPassword = await hash(args.password, 10);
       const user = await context.prisma.user.create({
         data: {
@@ -54,6 +71,11 @@ const resolvers = {
       args: { username: string; password: string },
       context: GraphQlContext
     ) => {
+      const result = loginUserSchema.safeParse({ ...args });
+      if (!result.success) {
+        throw fromZodError(result.error);
+      }
+
       const user = await context.prisma.user.findUnique({
         where: {
           username: args.username,
