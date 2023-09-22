@@ -7,6 +7,7 @@ import {
   createStorySchema,
   loginUserSchema,
   registerUserSchema,
+  updateStorySchema,
 } from './lib/objectSchemas';
 import { fromZodError } from 'zod-validation-error';
 import { Story, User } from '@prisma/client';
@@ -88,6 +89,11 @@ const resolvers = {
     ) => {
       if (context.currentUser === null) {
         throw new Error('Unauthenticated!');
+      }
+
+      const results = updateStorySchema.safeParse({ ...args });
+      if (!results.success) {
+        throw fromZodError(results.error);
       }
 
       const storyToUpdate = await context.prisma.story.findUnique({
