@@ -6,6 +6,8 @@ type Query {
 
 type Mutation {
   createStory(text: String!): Story!
+  deleteStory(id: Int!): delResponse!
+  updateStory(id: Int!, text: String!): Story!
   register(
     username: String!
     email: String!
@@ -32,4 +34,8 @@ type User {
 type AuthPayload {
   token: String!
   user: User
+}
+
+type delResponse {
+  message: String!
 }

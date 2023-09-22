@@ -11,12 +11,16 @@ import {
 import { fromZodError } from 'zod-validation-error';
 import { Story, User } from '@prisma/client';
 
+interface delResponse {
+  message: string;
+}
+
 const resolvers = {
   Query: {
     info: () =>
       "This is the Stories API, user's can sign up and post short stories for others to read.",
     feed: async (parent: unknown, args: {}, context: GraphQlContext) => {
-      return context.prisma.story.findMany({});
+      return await context.prisma.story.findMany({});
     },
     me: (parent: unknown, args: {}, context: GraphQlContext) => {
       if (context.currentUser === null) {
@@ -48,6 +52,65 @@ const resolvers = {
         },
       });
       return newStory;
+    },
+    deleteStory: async (
+      parent: unknown,
+      args: { id: number },
+      context: GraphQlContext
+    ) => {
+      if (context.currentUser === null) {
+        throw new Error('Unauthenticated!');
+      }
+
+      const storyToDel = await context.prisma.story.findUnique({
+        where: {
+          id: args.id,
+          authorId: context.currentUser.id,
+        },
+      });
+
+      if (!storyToDel) {
+        throw new Error('Unauthorized');
+      }
+
+      await context.prisma.story.delete({ where: { id: args.id } });
+
+      const response: delResponse = {
+        message: 'Story successfully deleted',
+      };
+
+      return response;
+    },
+    updateStory: async (
+      parent: unknown,
+      args: { id: number; text: string },
+      context: GraphQlContext
+    ) => {
+      if (context.currentUser === null) {
+        throw new Error('Unauthenticated!');
+      }
+
+      const storyToUpdate = await context.prisma.story.findUnique({
+        where: {
+          id: args.id,
+          authorId: context.currentUser.id,
+        },
+      });
+
+      if (!storyToUpdate) {
+        throw new Error('Unauthorized');
+      }
+
+      const updatedStory = await context.prisma.story.update({
+        where: {
+          id: args.id,
+        },
+        data: {
+          text: args.text,
+        },
+      });
+
+      return updatedStory;
     },
     register: async (
       parent: unknown,
@@ -110,14 +173,14 @@ const resolvers = {
         return null;
       }
 
-      return context.prisma.story
+      return await context.prisma.story
         .findUnique({ where: { id: parent.id } })
         .author();
     },
   },
   User: {
-    stories: (parent: User, args: {}, context: GraphQlContext) => {
-      return context.prisma.user
+    stories: async (parent: User, args: {}, context: GraphQlContext) => {
+      return await context.prisma.user
         .findUnique({ where: { id: parent.id } })
         .stories();
     },
