@@ -1,6 +1,7 @@
 type Query {
   info: String!
   feed: [Story!]!
+  me: User!
 }
 
 type Mutation {
@@ -17,7 +18,7 @@ type Mutation {
 type Story {
   id: ID!
   text: String!
-  author: User!
+  author: User
 }
 
 type User {

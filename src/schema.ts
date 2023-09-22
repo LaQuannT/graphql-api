@@ -1,5 +1,4 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import { Story } from '@prisma/client';
 import { GraphQlContext } from './lib/context';
 import typeDefs from './schema.graphql';
 import { compare, hash } from 'bcryptjs';
@@ -10,6 +9,7 @@ import {
   registerUserSchema,
 } from './lib/objectSchemas';
 import { fromZodError } from 'zod-validation-error';
+import { Story, User } from '@prisma/client';
 
 const resolvers = {
   Query: {
@@ -18,6 +18,12 @@ const resolvers = {
     feed: async (parent: unknown, args: {}, context: GraphQlContext) => {
       return context.prisma.story.findMany({});
     },
+    me: (parent: unknown, args: {}, context: GraphQlContext) => {
+      if (context.currentUser === null) {
+        throw new Error('Unauthenticated!');
+      }
+      return context.currentUser;
+    },
   },
   Mutation: {
     createStory: async (
@@ -25,6 +31,10 @@ const resolvers = {
       args: { text: string },
       context: GraphQlContext
     ) => {
+      if (context.currentUser === null) {
+        throw new Error('Unauthenticated!');
+      }
+
       const result = createStorySchema.safeParse(args.text);
 
       if (!result.success) {
@@ -34,6 +44,7 @@ const resolvers = {
       const newStory = await context.prisma.story.create({
         data: {
           text: args.text,
+          author: { connect: { id: context.currentUser.id } },
         },
       });
       return newStory;
@@ -91,6 +102,24 @@ const resolvers = {
       const token = createToken(user.id);
 
       return { token, user };
+    },
+  },
+  Story: {
+    author: async (parent: Story, args: {}, context: GraphQlContext) => {
+      if (!parent.authorId) {
+        return null;
+      }
+
+      return context.prisma.story
+        .findUnique({ where: { id: parent.id } })
+        .author();
+    },
+  },
+  User: {
+    stories: (parent: User, args: {}, context: GraphQlContext) => {
+      return context.prisma.user
+        .findUnique({ where: { id: parent.id } })
+        .stories();
     },
   },
 };

@@ -43,7 +43,7 @@ server.route({
       variables,
       schema,
       request,
-      contextFactory,
+      contextFactory: () => contextFactory(req),
     });
 
     sendResult(results, res.raw);
