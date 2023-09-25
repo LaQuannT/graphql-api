@@ -32,3 +32,8 @@ export const updateStorySchema = z.object({
   id: z.number(),
   text: z.string().min(4).max(120).trim(),
 });
+
+export const commentSchema = z.object({
+  storyId: z.number(),
+  text: z.string().min(4).max(120).trim(),
+});

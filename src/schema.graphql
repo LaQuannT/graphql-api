@@ -8,6 +8,8 @@ type Mutation {
   createStory(text: String!): Story!
   deleteStory(id: Int!): delResponse!
   updateStory(id: Int!, text: String!): Story!
+  comment(storyId: Int!, text: String!): Comment!
+  deleteComment(id: Int): delResponse!
   register(
     username: String!
     email: String!
@@ -21,6 +23,7 @@ type Story {
   id: ID!
   text: String!
   author: User
+  comments: [Comment!]!
 }
 
 type User {
@@ -29,6 +32,14 @@ type User {
   email: String!
   password: String!
   stories: [Story!]!
+  comments: [Comment!]!
+}
+
+type Comment {
+  id: ID!
+  text: String!
+  author: User
+  story: Story!
 }
 
 type AuthPayload {

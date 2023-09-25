@@ -4,13 +4,14 @@ import typeDefs from './schema.graphql';
 import { compare, hash } from 'bcryptjs';
 import createToken from './lib/createToken';
 import {
+  commentSchema,
   createStorySchema,
   loginUserSchema,
   registerUserSchema,
   updateStorySchema,
 } from './lib/objectSchemas';
 import { fromZodError } from 'zod-validation-error';
-import { Story, User } from '@prisma/client';
+import { Comment, Story, User } from '@prisma/client';
 
 interface delResponse {
   message: string;
@@ -172,6 +173,71 @@ const resolvers = {
 
       return { token, user };
     },
+    comment: async (
+      parent: unknown,
+      args: { storyId: number; text: string },
+      context: GraphQlContext
+    ) => {
+      if (context.currentUser === null) {
+        throw new Error('Unauthenticated!');
+      }
+
+      const results = commentSchema.safeParse({ ...args });
+      if (!results.success) {
+        throw fromZodError(results.error);
+      }
+
+      const story = await context.prisma.story.findUnique({
+        where: {
+          id: args.storyId,
+        },
+      });
+
+      if (!story) {
+        throw new Error('Story not found');
+      }
+
+      const newComment = await context.prisma.comment.create({
+        data: {
+          text: args.text,
+          author: { connect: { id: context.currentUser.id } },
+          story: { connect: { id: story.id } },
+        },
+      });
+
+      return newComment;
+    },
+
+    deleteComment: async (
+      parent: unknown,
+      args: { id: number },
+      context: GraphQlContext
+    ) => {
+      if (context.currentUser === null) {
+        throw new Error('Unauthenticated!');
+      }
+
+      const commentToDelete = await context.prisma.comment.findUnique({
+        where: {
+          id: args.id,
+          authorId: context.currentUser.id,
+        },
+      });
+
+      if (!commentToDelete) {
+        throw new Error('Unauthorized');
+      }
+
+      await context.prisma.comment.delete({
+        where: { id: args.id },
+      });
+
+      const response: delResponse = {
+        message: 'Comment successfully deleted',
+      };
+
+      return response;
+    },
   },
   Story: {
     author: async (parent: Story, args: {}, context: GraphQlContext) => {
@@ -183,12 +249,38 @@ const resolvers = {
         .findUnique({ where: { id: parent.id } })
         .author();
     },
+    comments: async (parent: Story, args: {}, context: GraphQlContext) => {
+      return await context.prisma.story
+        .findUnique({
+          where: {
+            id: parent.id,
+          },
+        })
+        .comments();
+    },
   },
   User: {
     stories: async (parent: User, args: {}, context: GraphQlContext) => {
       return await context.prisma.user
         .findUnique({ where: { id: parent.id } })
         .stories();
+    },
+    comments: async (parent: Story, args: {}, context: GraphQlContext) => {
+      return await context.prisma.user
+        .findUnique({ where: { id: parent.id } })
+        .comments();
+    },
+  },
+  Comment: {
+    author: async (parent: Comment, args: {}, context: GraphQlContext) => {
+      return await context.prisma.comment
+        .findUnique({ where: { id: parent.id } })
+        .author();
+    },
+    story: async (parent: Comment, args: {}, context: GraphQlContext) => {
+      return await context.prisma.comment
+        .findUnique({ where: { id: parent.id } })
+        .story();
     },
   },
 };
