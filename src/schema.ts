@@ -30,6 +30,17 @@ const resolvers = {
       }
       return context.currentUser;
     },
+    users: async (parent: unknown, args: {}, context: GraphQlContext) => {
+      if (!context.currentUser) {
+        throw new Error('Unauthorized');
+      }
+
+      if (!context.currentUser.isAdmin) {
+        throw new Error('Unauthorized');
+      }
+
+      return await context.prisma.user.findMany({});
+    },
   },
   Mutation: {
     createStory: async (
@@ -64,12 +75,14 @@ const resolvers = {
         throw new Error('Unauthenticated!');
       }
 
-      const storyToDel = await context.prisma.story.findUnique({
-        where: {
-          id: args.id,
-          authorId: context.currentUser.id,
-        },
-      });
+      const storyToDel = context.currentUser.isAdmin
+        ? await context.prisma.story.findUnique({ where: { id: args.id } })
+        : await context.prisma.story.findUnique({
+            where: {
+              id: args.id,
+              authorId: context.currentUser.id,
+            },
+          });
 
       if (!storyToDel) {
         throw new Error('Unauthorized');
@@ -126,6 +139,7 @@ const resolvers = {
         password: string;
         confirmedPassword: string;
         email: string;
+        isAdmin?: boolean;
       },
       context: GraphQlContext
     ) => {
@@ -140,6 +154,7 @@ const resolvers = {
           email: args.email,
           username: args.username,
           password: hashedPassword,
+          isAdmin: args.isAdmin,
         },
       });
 
@@ -217,12 +232,14 @@ const resolvers = {
         throw new Error('Unauthenticated!');
       }
 
-      const commentToDelete = await context.prisma.comment.findUnique({
-        where: {
-          id: args.id,
-          authorId: context.currentUser.id,
-        },
-      });
+      const commentToDelete = context.currentUser.isAdmin
+        ? await context.prisma.comment.findUnique({ where: { id: args.id } })
+        : await context.prisma.comment.findUnique({
+            where: {
+              id: args.id,
+              authorId: context.currentUser.id,
+            },
+          });
 
       if (!commentToDelete) {
         throw new Error('Unauthorized');
@@ -237,6 +254,33 @@ const resolvers = {
       };
 
       return response;
+    },
+    deleteUser: async (
+      parent: unknown,
+      args: { userId: number },
+      context: GraphQlContext
+    ) => {
+      if (context.currentUser === null) {
+        throw new Error('Unauthenticated!');
+      }
+
+      if (!context.currentUser.isAdmin) {
+        throw new Error('Unauthorized');
+      }
+
+      const userToDelete = await context.prisma.user.findUnique({
+        where: { id: args.userId },
+      });
+      if (!userToDelete) {
+        throw new Error('User not found');
+      }
+
+      await context.prisma.user.delete({ where: { id: args.userId } });
+      const res: delResponse = {
+        message: 'User successfully deleted',
+      };
+
+      return res;
     },
   },
   Story: {

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+// TODO: fix register passwords bug
+
 export const registerUserSchema = z
   .object({
     username: z.string().min(3).trim(),

@@ -26,6 +26,7 @@ model User {
   password   String
   stories    Story[]
   comments   Comment[]
+  isAdmin    Boolean   @default(false)
 }
 
 model Comment {

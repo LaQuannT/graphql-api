@@ -1,6 +1,7 @@
 type Query {
   info: String!
   feed: [Story!]!
+  users: [User!]!
   me: User!
 }
 
@@ -15,8 +16,10 @@ type Mutation {
     email: String!
     password: String!
     confirmedPassword: String!
+    isAdmin: Boolean!
   ): AuthPayload
   login(username: String!, password: String!): AuthPayload
+  deleteUser(userId: Int!): delResponse
 }
 
 type Story {
@@ -33,6 +36,7 @@ type User {
   password: String!
   stories: [Story!]!
   comments: [Comment!]!
+  isAdmin: Boolean!
 }
 
 type Comment {
