@@ -1,6 +1,6 @@
 type Query {
   info: String!
-  feed: [Story!]!
+  feed(filter: String, offset: Int, limit: Int): [Story!]!
   users: [User!]!
   me: User!
 }

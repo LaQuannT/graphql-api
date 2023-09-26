@@ -21,8 +21,19 @@ const resolvers = {
   Query: {
     info: () =>
       "This is the Stories API, user's can sign up and post short stories for others to read.",
-    feed: async (parent: unknown, args: {}, context: GraphQlContext) => {
-      return await context.prisma.story.findMany({});
+    feed: async (
+      parent: unknown,
+      args: { filter?: string; offset?: number; limit?: number },
+      context: GraphQlContext
+    ) => {
+      const where = args.filter ? { title: { contains: args.filter } } : {};
+
+      return await context.prisma.story.findMany({
+        where,
+        skip: args.offset,
+        take: args.limit,
+        orderBy: { createdAt: 'desc' },
+      });
     },
     me: (parent: unknown, args: {}, context: GraphQlContext) => {
       if (context.currentUser === null) {
