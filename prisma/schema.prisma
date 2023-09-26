@@ -12,6 +12,7 @@ datasource db {
 
 model Story {
   id          Int        @id @default(autoincrement())
+  title       String
   text        String
   createdAt   DateTime   @default(now()) 
   author      User?      @relation(fields: [authorId], references: [id])

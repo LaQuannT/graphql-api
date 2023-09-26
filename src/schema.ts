@@ -45,14 +45,14 @@ const resolvers = {
   Mutation: {
     createStory: async (
       parent: unknown,
-      args: { text: string },
+      args: { text: string; title: string },
       context: GraphQlContext
     ) => {
       if (context.currentUser === null) {
         throw new Error('Unauthenticated!');
       }
 
-      const result = createStorySchema.safeParse(args.text);
+      const result = createStorySchema.safeParse({ ...args });
 
       if (!result.success) {
         throw fromZodError(result.error);
@@ -60,6 +60,7 @@ const resolvers = {
 
       const newStory = await context.prisma.story.create({
         data: {
+          title: args.title,
           text: args.text,
           author: { connect: { id: context.currentUser.id } },
         },
@@ -98,7 +99,7 @@ const resolvers = {
     },
     updateStory: async (
       parent: unknown,
-      args: { id: number; text: string },
+      args: { id: number; text: string; title: string },
       context: GraphQlContext
     ) => {
       if (context.currentUser === null) {
@@ -126,6 +127,7 @@ const resolvers = {
           id: args.id,
         },
         data: {
+          title: args.title,
           text: args.text,
         },
       });

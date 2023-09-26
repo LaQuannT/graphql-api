@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-// TODO: fix register passwords bug
-
 export const registerUserSchema = z
   .object({
     username: z.string().min(3).trim(),
@@ -28,11 +26,15 @@ export const loginUserSchema = z.object({
     .regex(new RegExp('^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{8,}$')),
 });
 
-export const createStorySchema = z.string().min(4).max(120).trim();
+export const createStorySchema = z.object({
+  title: z.string().min(4).max(80).trim(),
+  text: z.string().min(4).max(280).trim(),
+});
 
 export const updateStorySchema = z.object({
   id: z.number(),
-  text: z.string().min(4).max(120).trim(),
+  title: z.string().min(4).max(80).trim(),
+  text: z.string().min(4).max(280).trim(),
 });
 
 export const commentSchema = z.object({

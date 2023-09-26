@@ -6,9 +6,9 @@ type Query {
 }
 
 type Mutation {
-  createStory(text: String!): Story!
+  createStory(text: String!, title: String!): Story!
   deleteStory(id: Int!): delResponse!
-  updateStory(id: Int!, text: String!): Story!
+  updateStory(id: Int!, text: String!, title: String!): Story!
   comment(storyId: Int!, text: String!): Comment!
   deleteComment(id: Int): delResponse!
   register(
@@ -24,6 +24,7 @@ type Mutation {
 
 type Story {
   id: ID!
+  title: String!
   text: String!
   author: User
   comments: [Comment!]!
