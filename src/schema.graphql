@@ -16,7 +16,7 @@ type Mutation {
     email: String!
     password: String!
     confirmedPassword: String!
-    isAdmin: Boolean!
+    isAdmin: Boolean
   ): AuthPayload
   login(username: String!, password: String!): AuthPayload
   deleteUser(userId: Int!): delResponse

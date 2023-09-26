@@ -15,7 +15,7 @@ export const registerUserSchema = z
       .min(8)
       .regex(new RegExp('^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{8,}$')),
   })
-  .refine((data) => data.password !== data.confirmedPassword, {
+  .refine((data) => data.password === data.confirmedPassword, {
     message: 'Passwords must match',
     path: ['confirmedPassword'],
   });
