@@ -11,7 +11,7 @@ import {
   updateStorySchema,
 } from './lib/objectSchemas';
 import { fromZodError } from 'zod-validation-error';
-import { Comment, Story, User } from '@prisma/client';
+import { Comment, Like, Story, User } from '@prisma/client';
 
 interface delResponse {
   message: string;
@@ -295,6 +295,37 @@ const resolvers = {
 
       return res;
     },
+    like: async (
+      parent: unknown,
+      args: { storyId: number },
+      context: GraphQlContext
+    ) => {
+      if (context.currentUser === null) {
+        throw new Error('You must login in order to like story!');
+      }
+
+      const like = await context.prisma.like.findUnique({
+        where: {
+          storyId_authorId: {
+            storyId: args.storyId,
+            authorId: context.currentUser.id,
+          },
+        },
+      });
+
+      if (like) {
+        throw new Error(`Already liked story: ${args.storyId}`);
+      }
+
+      const newLike = await context.prisma.like.create({
+        data: {
+          author: { connect: { id: context.currentUser.id } },
+          story: { connect: { id: args.storyId } },
+        },
+      });
+
+      return newLike;
+    },
   },
   Story: {
     author: async (parent: Story, args: {}, context: GraphQlContext) => {
@@ -314,6 +345,11 @@ const resolvers = {
           },
         })
         .comments();
+    },
+    likes: async (parent: Story, args: {}, context: GraphQlContext) => {
+      return await context.prisma.story
+        .findUnique({ where: { id: parent.id } })
+        .likes();
     },
   },
   User: {
@@ -338,6 +374,22 @@ const resolvers = {
       return await context.prisma.comment
         .findUnique({ where: { id: parent.id } })
         .story();
+    },
+  },
+  Like: {
+    story: async (parent: Like, args: {}, context: GraphQlContext) => {
+      return context.prisma.like
+        .findUnique({
+          where: { id: parent.id },
+        })
+        .story();
+    },
+    author: async (parent: Like, args: {}, context: GraphQlContext) => {
+      return context.prisma.like
+        .findUnique({
+          where: { id: parent.id },
+        })
+        .author();
     },
   },
 };

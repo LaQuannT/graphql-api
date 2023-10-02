@@ -17,7 +17,8 @@ model Story {
   createdAt   DateTime   @default(now()) 
   author      User?      @relation(fields: [authorId], references: [id])
   authorId    Int?      
-  comments    Comment[]  
+  comments    Comment[]
+  likes       Like[]  
 }
 
 model User {
@@ -28,13 +29,24 @@ model User {
   stories    Story[]
   comments   Comment[]
   isAdmin    Boolean   @default(false)
+  likes      Like[]
 }
 
 model Comment {
-  id  Int @id @default(autoincrement())
-  text  String
-  story Story?  @relation(fields: [storyId], references: [id])
-  storyId Int?
-  author  User? @relation(fields: [authorId], references: [id])
+  id        Int       @id @default(autoincrement())
+  text      String
+  story     Story?    @relation(fields: [storyId], references: [id])
+  storyId   Int?
+  author    User?     @relation(fields: [authorId], references: [id])
   authorId  Int?
+}
+
+model Like {
+  id        Int       @id @default(autoincrement())
+  story     Story?    @relation(fields: [storyId], references: [id])
+  storyId   Int?      
+  author    User?     @relation(fields: [authorId], references: [id])
+  authorId  Int?      
+  
+  @@unique([storyId, authorId])
 }
