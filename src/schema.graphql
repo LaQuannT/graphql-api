@@ -23,6 +23,12 @@ type Mutation {
   like(storyId: Int!): Like
 }
 
+type Subscription {
+  newStory: Story
+  newComment: Comment
+  newLike: Like
+}
+
 type Story {
   id: ID!
   title: String!

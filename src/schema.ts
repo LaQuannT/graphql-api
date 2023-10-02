@@ -12,6 +12,7 @@ import {
 } from './lib/objectSchemas';
 import { fromZodError } from 'zod-validation-error';
 import { Comment, Like, Story, User } from '@prisma/client';
+import { channels } from './lib/pubsub';
 
 interface delResponse {
   message: string;
@@ -76,6 +77,9 @@ const resolvers = {
           author: { connect: { id: context.currentUser.id } },
         },
       });
+
+      context.pubSub.publish('newStory', { createdStory: newStory });
+
       return newStory;
     },
     deleteStory: async (
@@ -233,6 +237,8 @@ const resolvers = {
         },
       });
 
+      context.pubSub.publish('newComment', { createdComment: newComment });
+
       return newComment;
     },
 
@@ -324,7 +330,35 @@ const resolvers = {
         },
       });
 
+      context.pubSub.publish('newLike', { createdLike: newLike });
+
       return newLike;
+    },
+  },
+  Subscription: {
+    newStory: {
+      subscribe: (parent: unknown, args: {}, context: GraphQlContext) => {
+        return context.pubSub.asyncIterator('newStory');
+      },
+      resolve: async (payload: channels['newStory'][0]) => {
+        return payload.createdStory;
+      },
+    },
+    newComment: {
+      subscribe: (parent: unknown, args: {}, context: GraphQlContext) => {
+        return context.pubSub.asyncIterator('newComment');
+      },
+      resolve: async (payload: channels['newComment'][0]) => {
+        return payload.createdComment;
+      },
+    },
+    newLike: {
+      subscribe: (parent: unknown, args: {}, context: GraphQlContext) => {
+        return context.pubSub.asyncIterator('newLike');
+      },
+      resolve: async (payload: channels['newLike'][0]) => {
+        return payload.createdLike;
+      },
     },
   },
   Story: {
