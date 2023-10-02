@@ -7,11 +7,11 @@ export const registerUserSchema = z
     password: z
       .string()
       .min(8)
-      .regex(new RegExp('^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{8,}$')),
+      .regex(/^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{8,}$/),
     confirmedPassword: z
       .string()
       .min(8)
-      .regex(new RegExp('^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{8,}$')),
+      .regex(/^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{8,}$/),
   })
   .refine((data) => data.password === data.confirmedPassword, {
     message: 'Passwords must match',
@@ -23,7 +23,7 @@ export const loginUserSchema = z.object({
   password: z
     .string()
     .min(8)
-    .regex(new RegExp('^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{8,}$')),
+    .regex(/^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{8,}$/),
 });
 
 export const createStorySchema = z.object({

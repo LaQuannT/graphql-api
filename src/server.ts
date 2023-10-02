@@ -6,7 +6,7 @@ import {
   renderGraphiQL,
   shouldRenderGraphiQL,
   sendResult,
-  Request,
+  type Request,
 } from 'graphql-helix';
 import { schema } from './schema';
 import { contextFactory } from './lib/context';
@@ -17,7 +17,7 @@ const server = Fastify({
   logger: true,
 });
 
-const port = Number(process.env.PORT) || 8000;
+const port = (process.env.PORT != null) ? Number(process.env.PORT) : 8000;
 
 server.route({
   method: ['GET', 'POST'],
@@ -31,8 +31,8 @@ server.route({
     };
 
     if (shouldRenderGraphiQL(request)) {
-      res.type('text/html');
-      res.send(renderGraphiQL({ endpoint: '/api/v1/stories' }));
+      await res.type('text/html');
+      await res.send(renderGraphiQL({ endpoint: '/api/v1/stories' }));
       return;
     }
 
@@ -43,10 +43,10 @@ server.route({
       variables,
       schema,
       request,
-      contextFactory: () => contextFactory(req),
+      contextFactory: async () => await contextFactory(req),
     });
 
-    sendResult(results, res.raw);
+    await sendResult(results, res.raw);
   },
 });
 

@@ -1,6 +1,6 @@
-import { PrismaClient, User } from '@prisma/client';
-import { FastifyRequest } from 'fastify';
-import { JwtPayload, verify } from 'jsonwebtoken';
+import { type PrismaClient, type User } from '@prisma/client';
+import { type FastifyRequest } from 'fastify';
+import { type JwtPayload, verify } from 'jsonwebtoken';
 import { config } from 'dotenv';
 
 config();
@@ -13,9 +13,9 @@ async function authenticateUser(
 ): Promise<User | null> {
   const { authorization } = req.headers;
 
-  const token = authorization && authorization.split(' ')[1];
+  const token = authorization?.split(' ')[1];
 
-  if (token) {
+  if (token != null) {
     const tokenPayLoad = verify(token, APP_SECRET) as JwtPayload;
     const id = tokenPayLoad.userId;
     return await prisma.user.findUnique({ where: { id } });

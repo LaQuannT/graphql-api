@@ -1,5 +1,5 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import { GraphQlContext } from './lib/context';
+import { type GraphQlContext } from './lib/context';
 import typeDefs from './schema.graphql';
 import { compare, hash } from 'bcryptjs';
 import createToken from './lib/createToken';
@@ -11,8 +11,8 @@ import {
   updateStorySchema,
 } from './lib/objectSchemas';
 import { fromZodError } from 'zod-validation-error';
-import { Comment, Like, Story, User } from '@prisma/client';
-import { channels } from './lib/pubsub';
+import { type Comment, type Like, type Story, type User } from '@prisma/client';
+import { type channels } from './lib/pubsub';
 
 interface delResponse {
   message: string;
@@ -27,7 +27,8 @@ const resolvers = {
       args: { filter?: string; offset?: number; limit?: number },
       context: GraphQlContext
     ) => {
-      const where = args.filter ? { title: { contains: args.filter } } : {};
+      const where =
+        args.filter != null ? { title: { contains: args.filter } } : {};
 
       return await context.prisma.story.findMany({
         where,
@@ -36,19 +37,17 @@ const resolvers = {
         orderBy: { createdAt: 'desc' },
       });
     },
-    me: (parent: unknown, args: {}, context: GraphQlContext) => {
+    me: (parent: unknown, context: GraphQlContext) => {
       if (context.currentUser === null) {
-        throw new Error('Unauthenticated!');
+        throw new Error('Unauthenticated! User must be logged in.');
       }
       return context.currentUser;
     },
-    users: async (parent: unknown, args: {}, context: GraphQlContext) => {
-      if (!context.currentUser) {
-        throw new Error('Unauthorized');
-      }
-
-      if (!context.currentUser.isAdmin) {
-        throw new Error('Unauthorized');
+    users: async (parent: unknown, context: GraphQlContext) => {
+      if (context.currentUser == null || !context.currentUser.isAdmin) {
+        throw new Error(
+          'User must be an Admin and logged in to get list of users!'
+        );
       }
 
       return await context.prisma.user.findMany({});
@@ -61,7 +60,7 @@ const resolvers = {
       context: GraphQlContext
     ) => {
       if (context.currentUser === null) {
-        throw new Error('Unauthenticated!');
+        throw new Error('User must be logged in to create a story.');
       }
 
       const result = createStorySchema.safeParse({ ...args });
@@ -78,7 +77,7 @@ const resolvers = {
         },
       });
 
-      context.pubSub.publish('newStory', { createdStory: newStory });
+      await context.pubSub.publish('newStory', { createdStory: newStory });
 
       return newStory;
     },
@@ -88,7 +87,7 @@ const resolvers = {
       context: GraphQlContext
     ) => {
       if (context.currentUser === null) {
-        throw new Error('Unauthenticated!');
+        throw new Error('User must be logged in to delete story.');
       }
 
       const storyToDel = context.currentUser.isAdmin
@@ -100,14 +99,14 @@ const resolvers = {
             },
           });
 
-      if (!storyToDel) {
-        throw new Error('Unauthorized');
+      if (storyToDel == null) {
+        throw new Error('Story not found.');
       }
 
       await context.prisma.story.delete({ where: { id: args.id } });
 
       const response: delResponse = {
-        message: 'Story successfully deleted',
+        message: 'Story successfully deleted!',
       };
 
       return response;
@@ -118,7 +117,7 @@ const resolvers = {
       context: GraphQlContext
     ) => {
       if (context.currentUser === null) {
-        throw new Error('Unauthenticated!');
+        throw new Error('User must be logged in to update story.');
       }
 
       const results = updateStorySchema.safeParse({ ...args });
@@ -133,8 +132,8 @@ const resolvers = {
         },
       });
 
-      if (!storyToUpdate) {
-        throw new Error('Unauthorized');
+      if (storyToUpdate == null) {
+        throw new Error('Story not found!');
       }
 
       const updatedStory = await context.prisma.story.update({
@@ -195,7 +194,7 @@ const resolvers = {
         },
       });
 
-      if (!user) throw new Error('User not found');
+      if (user == null) throw new Error('User not found');
 
       const isPasswordValid = await compare(args.password, user.password);
 
@@ -211,7 +210,7 @@ const resolvers = {
       context: GraphQlContext
     ) => {
       if (context.currentUser === null) {
-        throw new Error('Unauthenticated!');
+        throw new Error('User must be logged in to comment on story.');
       }
 
       const results = commentSchema.safeParse({ ...args });
@@ -225,8 +224,8 @@ const resolvers = {
         },
       });
 
-      if (!story) {
-        throw new Error('Story not found');
+      if (story == null) {
+        throw new Error('Story not found!');
       }
 
       const newComment = await context.prisma.comment.create({
@@ -237,7 +236,9 @@ const resolvers = {
         },
       });
 
-      context.pubSub.publish('newComment', { createdComment: newComment });
+      await context.pubSub.publish('newComment', {
+        createdComment: newComment,
+      });
 
       return newComment;
     },
@@ -248,7 +249,7 @@ const resolvers = {
       context: GraphQlContext
     ) => {
       if (context.currentUser === null) {
-        throw new Error('Unauthenticated!');
+        throw new Error('User must be logged in to delete comment.');
       }
 
       const commentToDelete = context.currentUser.isAdmin
@@ -260,8 +261,8 @@ const resolvers = {
             },
           });
 
-      if (!commentToDelete) {
-        throw new Error('Unauthorized');
+      if (commentToDelete == null) {
+        throw new Error('Comment not found!');
       }
 
       await context.prisma.comment.delete({
@@ -279,19 +280,15 @@ const resolvers = {
       args: { userId: number },
       context: GraphQlContext
     ) => {
-      if (context.currentUser === null) {
-        throw new Error('Unauthenticated!');
-      }
-
-      if (!context.currentUser.isAdmin) {
-        throw new Error('Unauthorized');
+      if (context.currentUser === null || !context.currentUser.isAdmin) {
+        throw new Error('User must be an Admin and logged in to delete user.');
       }
 
       const userToDelete = await context.prisma.user.findUnique({
         where: { id: args.userId },
       });
-      if (!userToDelete) {
-        throw new Error('User not found');
+      if (userToDelete == null) {
+        throw new Error('User not found!');
       }
 
       await context.prisma.user.delete({ where: { id: args.userId } });
@@ -319,7 +316,7 @@ const resolvers = {
         },
       });
 
-      if (like) {
+      if (like != null) {
         throw new Error(`Already liked story: ${args.storyId}`);
       }
 
@@ -330,14 +327,14 @@ const resolvers = {
         },
       });
 
-      context.pubSub.publish('newLike', { createdLike: newLike });
+      await context.pubSub.publish('newLike', { createdLike: newLike });
 
       return newLike;
     },
   },
   Subscription: {
     newStory: {
-      subscribe: (parent: unknown, args: {}, context: GraphQlContext) => {
+      subscribe: (parent: unknown, context: GraphQlContext) => {
         return context.pubSub.asyncIterator('newStory');
       },
       resolve: async (payload: channels['newStory'][0]) => {
@@ -345,7 +342,7 @@ const resolvers = {
       },
     },
     newComment: {
-      subscribe: (parent: unknown, args: {}, context: GraphQlContext) => {
+      subscribe: (parent: unknown, context: GraphQlContext) => {
         return context.pubSub.asyncIterator('newComment');
       },
       resolve: async (payload: channels['newComment'][0]) => {
@@ -353,7 +350,7 @@ const resolvers = {
       },
     },
     newLike: {
-      subscribe: (parent: unknown, args: {}, context: GraphQlContext) => {
+      subscribe: (parent: unknown, context: GraphQlContext) => {
         return context.pubSub.asyncIterator('newLike');
       },
       resolve: async (payload: channels['newLike'][0]) => {
@@ -362,8 +359,8 @@ const resolvers = {
     },
   },
   Story: {
-    author: async (parent: Story, args: {}, context: GraphQlContext) => {
-      if (!parent.authorId) {
+    author: async (parent: Story, context: GraphQlContext) => {
+      if (parent.authorId == null) {
         return null;
       }
 
@@ -371,7 +368,7 @@ const resolvers = {
         .findUnique({ where: { id: parent.id } })
         .author();
     },
-    comments: async (parent: Story, args: {}, context: GraphQlContext) => {
+    comments: async (parent: Story, context: GraphQlContext) => {
       return await context.prisma.story
         .findUnique({
           where: {
@@ -380,46 +377,46 @@ const resolvers = {
         })
         .comments();
     },
-    likes: async (parent: Story, args: {}, context: GraphQlContext) => {
+    likes: async (parent: Story, context: GraphQlContext) => {
       return await context.prisma.story
         .findUnique({ where: { id: parent.id } })
         .likes();
     },
   },
   User: {
-    stories: async (parent: User, args: {}, context: GraphQlContext) => {
+    stories: async (parent: User, context: GraphQlContext) => {
       return await context.prisma.user
         .findUnique({ where: { id: parent.id } })
         .stories();
     },
-    comments: async (parent: Story, args: {}, context: GraphQlContext) => {
+    comments: async (parent: Story, context: GraphQlContext) => {
       return await context.prisma.user
         .findUnique({ where: { id: parent.id } })
         .comments();
     },
   },
   Comment: {
-    author: async (parent: Comment, args: {}, context: GraphQlContext) => {
+    author: async (parent: Comment, context: GraphQlContext) => {
       return await context.prisma.comment
         .findUnique({ where: { id: parent.id } })
         .author();
     },
-    story: async (parent: Comment, args: {}, context: GraphQlContext) => {
+    story: async (parent: Comment, context: GraphQlContext) => {
       return await context.prisma.comment
         .findUnique({ where: { id: parent.id } })
         .story();
     },
   },
   Like: {
-    story: async (parent: Like, args: {}, context: GraphQlContext) => {
-      return context.prisma.like
+    story: async (parent: Like, context: GraphQlContext) => {
+      return await context.prisma.like
         .findUnique({
           where: { id: parent.id },
         })
         .story();
     },
-    author: async (parent: Like, args: {}, context: GraphQlContext) => {
-      return context.prisma.like
+    author: async (parent: Like, context: GraphQlContext) => {
+      return await context.prisma.like
         .findUnique({
           where: { id: parent.id },
         })

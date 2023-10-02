@@ -1,4 +1,4 @@
-import { Comment, Like, Story } from '@prisma/client';
+import type { Comment, Like, Story } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 import { TypedPubSub } from 'typed-graphql-subscriptions';
 
